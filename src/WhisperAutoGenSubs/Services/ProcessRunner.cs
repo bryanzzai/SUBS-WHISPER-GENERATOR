@@ -78,6 +78,7 @@ public static class ProcessRunner
 
         using var ownGpu = GpuUsageMonitor.ForProcess(process.Id);
         using var totalGpu = GpuUsageMonitor.ForAllEngines();
+        var nvidia = NvidiaSmiTelemetry.TryCreate();
         var systemCpu = new SystemCpuMonitor();
         var stopwatch = Stopwatch.StartNew();
         var previousWall = stopwatch.Elapsed;
@@ -99,7 +100,8 @@ public static class ProcessRunner
 
             previousWall = now;
             previousCpu = cpuNow;
-            telemetry.Report(new ProcessTelemetry(processCpu, systemCpu.ReadPercent(), ownGpu.ReadPercent(), totalGpu.ReadPercent()));
+            var nvidiaSample = nvidia is null ? null : await nvidia.ReadAsync(process.Id, cancellationToken);
+            telemetry.Report(new ProcessTelemetry(processCpu, systemCpu.ReadPercent(), ownGpu.ReadPercent(), totalGpu.ReadPercent(), nvidiaSample));
         }
     }
 

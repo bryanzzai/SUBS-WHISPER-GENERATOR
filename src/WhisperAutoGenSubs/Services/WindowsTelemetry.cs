@@ -11,16 +11,17 @@ internal sealed class GpuUsageMonitor : IDisposable
 {
     private const uint PdhFmtDouble = 0x00000200;
     private const uint PdhMoreData = 0x800007D2;
-    private readonly string _wildcardPath;
+    private const uint PdhRefreshCounters = 0x00000001;
+    private readonly string _englishWildcardPath;
     private IntPtr _query;
     private readonly List<IntPtr> _counters = [];
     private int _readsSinceRefresh;
     private int _zeroReads;
     private bool _disposed;
 
-    private GpuUsageMonitor(string wildcardPath)
+    private GpuUsageMonitor(string englishWildcardPath)
     {
-        _wildcardPath = wildcardPath;
+        _englishWildcardPath = englishWildcardPath;
         RebindCounters();
     }
 
@@ -91,9 +92,13 @@ internal sealed class GpuUsageMonitor : IDisposable
         if (PdhOpenQuery(null, IntPtr.Zero, out _query) != 0)
             return;
 
-        foreach (var path in ExpandPaths(_wildcardPath))
+        // PdhExpandWildCardPath accepts localized paths.  It is tempting to send
+        // "GPU Engine" straight to it, but that silently finds no counters on a
+        // non-English Windows installation.  Microsoft specifies this sequence:
+        // Add English wildcard -> get localized path -> expand -> add localized paths.
+        foreach (var path in ExpandEnglishPaths(_query, _englishWildcardPath))
         {
-            if (PdhAddEnglishCounter(_query, path, IntPtr.Zero, out var counter) == 0)
+            if (PdhAddCounter(_query, path, IntPtr.Zero, out var counter) == 0)
                 _counters.Add(counter);
         }
 
@@ -108,15 +113,59 @@ internal sealed class GpuUsageMonitor : IDisposable
         _query = IntPtr.Zero;
     }
 
-    private static IEnumerable<string> ExpandPaths(string wildcardPath)
+    private static IEnumerable<string> ExpandEnglishPaths(IntPtr query, string englishWildcardPath)
+    {
+        if (PdhAddEnglishCounter(query, englishWildcardPath, IntPtr.Zero, out var englishWildcardCounter) != 0)
+            yield break;
+
+        try
+        {
+            var localizedWildcardPath = GetLocalizedPath(englishWildcardCounter);
+            if (string.IsNullOrWhiteSpace(localizedWildcardPath))
+                yield break;
+
+            foreach (var path in ExpandLocalizedPaths(localizedWildcardPath))
+                yield return path;
+        }
+        finally
+        {
+            PdhRemoveCounter(englishWildcardCounter);
+        }
+    }
+
+    private static string? GetLocalizedPath(IntPtr counter)
     {
         uint size = 0;
-        var result = PdhExpandWildCardPath(null, wildcardPath, null, ref size, 0);
+        var result = PdhGetCounterInfo(counter, false, ref size, IntPtr.Zero);
+        if (result != PdhMoreData || size == 0)
+            return null;
+
+        var buffer = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            if (PdhGetCounterInfo(counter, false, ref size, buffer) != 0)
+                return null;
+
+            // PDH_COUNTER_INFO_W: six DWORD values, two DWORD_PTR values, then szFullPath.
+            var fullPathOffset = sizeof(uint) * 6 + IntPtr.Size * 2;
+            var fullPath = Marshal.ReadIntPtr(buffer, fullPathOffset);
+            return fullPath == IntPtr.Zero ? null : Marshal.PtrToStringUni(fullPath);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    private static IEnumerable<string> ExpandLocalizedPaths(string wildcardPath)
+    {
+        uint size = 0;
+        var result = PdhExpandWildCardPath(null, wildcardPath, null, ref size, PdhRefreshCounters);
         if (result != PdhMoreData || size == 0)
             yield break;
 
         var buffer = new StringBuilder((int)size);
-        if (PdhExpandWildCardPath(null, wildcardPath, buffer, ref size, 0) != 0)
+        if (PdhExpandWildCardPath(null, wildcardPath, buffer, ref size, PdhRefreshCounters) != 0)
             yield break;
 
         foreach (var path in buffer.ToString().Split('\0', StringSplitOptions.RemoveEmptyEntries))
@@ -129,6 +178,12 @@ internal sealed class GpuUsageMonitor : IDisposable
     [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
     private static extern uint PdhAddEnglishCounter(IntPtr query, string fullCounterPath, IntPtr userData, out IntPtr counter);
 
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    private static extern uint PdhAddCounter(IntPtr query, string fullCounterPath, IntPtr userData, out IntPtr counter);
+
+    [DllImport("pdh.dll")]
+    private static extern uint PdhRemoveCounter(IntPtr counter);
+
     [DllImport("pdh.dll")]
     private static extern uint PdhCollectQueryData(IntPtr query);
 
@@ -137,6 +192,9 @@ internal sealed class GpuUsageMonitor : IDisposable
 
     [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
     private static extern uint PdhExpandWildCardPath(string? dataSource, string wildcardPath, StringBuilder? expandedPathList, ref uint pathListLength, uint flags);
+
+    [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+    private static extern uint PdhGetCounterInfo(IntPtr counter, [MarshalAs(UnmanagedType.Bool)] bool retrieveExplainText, ref uint bufferSize, IntPtr buffer);
 
     [DllImport("pdh.dll")]
     private static extern uint PdhGetFormattedCounterValue(IntPtr counter, uint format, IntPtr type, out PdhFormattedCounterValue value);

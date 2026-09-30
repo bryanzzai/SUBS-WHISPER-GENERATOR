@@ -212,8 +212,8 @@ public partial class MainWindow : Window
         EngineTextBlock.Text = "Not started";
         WorkerCpuTextBlock.Text = "Active process CPU: —";
         SystemCpuTextBlock.Text = "Whole PC CPU: —";
-        WorkerGpuTextBlock.Text = "Active process GPU: waiting for Windows counter…";
-        TotalGpuTextBlock.Text = "Whole GPU (busiest engine): —";
+        WorkerGpuTextBlock.Text = "NVIDIA GPU: waiting for driver telemetry…";
+        TotalGpuTextBlock.Text = "Whisper GPU memory: —";
         WorkerCpuBar.Value = 0;
         WorkerGpuBar.Value = 0;
     }
@@ -249,15 +249,31 @@ public partial class MainWindow : Window
         if (update.Telemetry is { } telemetry)
         {
             WorkerCpuBar.Value = telemetry.ProcessCpuPercent;
-            WorkerGpuBar.Value = telemetry.ProcessGpuPercent ?? 0;
             WorkerCpuTextBlock.Text = $"Active process CPU: {telemetry.ProcessCpuPercent:0}%";
             SystemCpuTextBlock.Text = $"Whole PC CPU: {telemetry.SystemCpuPercent:0}%";
-            WorkerGpuTextBlock.Text = telemetry.ProcessGpuPercent is { } gpu
-                ? $"Active process GPU: {gpu:0}%"
-                : "Active process GPU: not available from Windows counter";
-            TotalGpuTextBlock.Text = telemetry.TotalGpuPercent is { } totalGpu
-                ? $"Whole GPU (busiest engine): {totalGpu:0}%"
-                : "Whole GPU (busiest engine): not available from Windows counter";
+            if (telemetry.Nvidia is { } nvidia)
+            {
+                WorkerGpuBar.Value = nvidia.GpuUtilizationPercent ?? 0;
+                var temperature = nvidia.TemperatureC is { } temp ? $" · {temp}°C" : string.Empty;
+                var power = nvidia.PowerWatts is { } watts ? $" · {watts:0} W" : string.Empty;
+                var memory = nvidia.MemoryUsedMiB is { } used ? $" · {used:N0} MiB used" : string.Empty;
+                WorkerGpuTextBlock.Text = nvidia.GpuUtilizationPercent is { } gpu
+                    ? $"{nvidia.GpuName}: {gpu:0}% (NVIDIA driver){temperature}{power}"
+                    : $"{nvidia.GpuName}: utilization unavailable from NVIDIA driver";
+                TotalGpuTextBlock.Text = nvidia.ProcessMemoryUsedMiB is { } processMemory
+                    ? $"Whisper GPU memory: {processMemory:N0} MiB (matched to whisper-cli){memory}"
+                    : $"Whisper GPU memory: not reported for this process{memory}";
+            }
+            else
+            {
+                WorkerGpuBar.Value = telemetry.TotalGpuPercent ?? telemetry.ProcessGpuPercent ?? 0;
+                WorkerGpuTextBlock.Text = telemetry.TotalGpuPercent is { } totalGpu
+                    ? $"GPU (Windows counter): {totalGpu:0}%"
+                    : "GPU meter: NVIDIA driver utility not found; Windows counter unavailable";
+                TotalGpuTextBlock.Text = telemetry.ProcessGpuPercent is { } gpu
+                    ? $"Whisper GPU engine (Windows counter): {gpu:0}%"
+                    : "Whisper GPU memory: unavailable without NVIDIA driver telemetry";
+            }
         }
     }
 

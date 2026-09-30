@@ -122,9 +122,9 @@
                             <TextBlock x:Name="SystemCpuTextBlock" Margin="0,4,0,0" Foreground="DimGray" Text="Whole PC CPU: —" />
                         </StackPanel>
                         <StackPanel Grid.Column="1">
-                            <TextBlock x:Name="WorkerGpuTextBlock" Text="Active process GPU: waiting for Windows counter…" />
+                            <TextBlock x:Name="WorkerGpuTextBlock" Text="NVIDIA GPU: waiting for driver telemetry…" />
                             <ProgressBar x:Name="WorkerGpuBar" Height="8" Margin="0,4,0,0" Minimum="0" Maximum="100" />
-                            <TextBlock x:Name="TotalGpuTextBlock" Margin="0,4,0,0" Foreground="DimGray" Text="Whole GPU (busiest engine): —" />
+                            <TextBlock x:Name="TotalGpuTextBlock" Margin="0,4,0,0" Foreground="DimGray" Text="Whisper GPU memory: —" />
                         </StackPanel>
                     </Grid>
                 </Grid>
