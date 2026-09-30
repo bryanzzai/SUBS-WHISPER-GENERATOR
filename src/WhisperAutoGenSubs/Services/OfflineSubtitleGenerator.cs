@@ -8,6 +8,8 @@ namespace WhisperAutoGenSubs.Services;
 public sealed class OfflineSubtitleGenerator
 {
     private static readonly Regex WhisperProgress = new(@"progress\s*=\s*(?<percent>\d{1,3})%", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex WhisperGpuEnabled = new(@"\buse\s+gpu\s*=\s*1\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex WhisperGpuDisabled = new(@"\buse\s+gpu\s*=\s*0\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public async Task<string> GenerateAsync(string videoPath, string ffmpegPath, string whisperCliPath, string modelPath,
         IProgress<GenerationProgress>? progress, CancellationToken cancellationToken)
@@ -118,13 +120,13 @@ public sealed class OfflineSubtitleGenerator
                     engineChanged = true;
                 }
             }
-            if (text.Contains("use gpu = 1"))
+            if (WhisperGpuEnabled.IsMatch(line.Text))
             {
                 gpuInferenceConfirmed = true;
                 engine = cudaBackendDetected ? "CUDA GPU inference confirmed" : "GPU inference confirmed";
                 engineChanged = true;
             }
-            if (text.Contains("use gpu = 0"))
+            if (WhisperGpuDisabled.IsMatch(line.Text))
             {
                 gpuInferenceConfirmed = false;
                 engine = cudaBackendDetected ? "CUDA backend detected — CPU inference selected" : "CPU-only executable";
