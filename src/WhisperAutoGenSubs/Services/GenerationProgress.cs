@@ -13,7 +13,8 @@ public sealed record ProcessTelemetry(
     double SystemCpuPercent,
     double? ProcessGpuPercent,
     double? TotalGpuPercent,
-    NvidiaTelemetry? Nvidia = null);
+    NvidiaTelemetry? Nvidia = null,
+    bool NvidiaDriverDetected = false);
 
 /// <summary>
 /// A sample reported by NVIDIA's installed driver through nvidia-smi.

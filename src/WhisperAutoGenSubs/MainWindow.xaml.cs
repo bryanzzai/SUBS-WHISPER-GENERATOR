@@ -269,10 +269,14 @@ public partial class MainWindow : Window
                 WorkerGpuBar.Value = telemetry.TotalGpuPercent ?? telemetry.ProcessGpuPercent ?? 0;
                 WorkerGpuTextBlock.Text = telemetry.TotalGpuPercent is { } totalGpu
                     ? $"GPU (Windows counter): {totalGpu:0}%"
-                    : "GPU meter: NVIDIA driver utility not found; Windows counter unavailable";
+                    : telemetry.NvidiaDriverDetected
+                        ? "GPU meter: NVIDIA driver telemetry returned no sample"
+                        : "GPU meter: NVIDIA driver telemetry not found; Windows counter unavailable";
                 TotalGpuTextBlock.Text = telemetry.ProcessGpuPercent is { } gpu
                     ? $"Whisper GPU engine (Windows counter): {gpu:0}%"
-                    : "Whisper GPU memory: unavailable without NVIDIA driver telemetry";
+                    : telemetry.NvidiaDriverDetected
+                        ? "Whisper GPU memory: NVIDIA driver query returned no sample"
+                        : "Whisper GPU memory: unavailable without NVIDIA driver telemetry";
             }
         }
     }
