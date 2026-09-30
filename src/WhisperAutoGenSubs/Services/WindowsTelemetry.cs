@@ -11,23 +11,17 @@ internal sealed class GpuUsageMonitor : IDisposable
 {
     private const uint PdhFmtDouble = 0x00000200;
     private const uint PdhMoreData = 0x800007D2;
-    private readonly IntPtr _query;
+    private readonly string _wildcardPath;
+    private IntPtr _query;
     private readonly List<IntPtr> _counters = [];
+    private int _readsSinceRefresh;
+    private int _zeroReads;
     private bool _disposed;
 
     private GpuUsageMonitor(string wildcardPath)
     {
-        if (PdhOpenQuery(null, IntPtr.Zero, out _query) != 0)
-            return;
-
-        foreach (var path in ExpandPaths(wildcardPath))
-        {
-            if (PdhAddEnglishCounter(_query, path, IntPtr.Zero, out var counter) == 0)
-                _counters.Add(counter);
-        }
-
-        if (_counters.Count > 0)
-            PdhCollectQueryData(_query); // Prime rate counters.
+        _wildcardPath = wildcardPath;
+        RebindCounters();
     }
 
     public static GpuUsageMonitor ForProcess(int processId) =>
@@ -38,7 +32,19 @@ internal sealed class GpuUsageMonitor : IDisposable
 
     public double? ReadPercent()
     {
-        if (_query == IntPtr.Zero || _counters.Count == 0 || PdhCollectQueryData(_query) != 0)
+        if (_disposed)
+            return null;
+
+        // Windows often creates the per-PID CUDA engine only after the first GPU submission.
+        // Rebind until it appears; rate counters then need one fresh interval.
+        if (_counters.Count == 0)
+        {
+            if (++_readsSinceRefresh >= 2)
+                RebindCounters();
+            return null; // Rate counters need one interval after being rebound.
+        }
+
+        if (_query == IntPtr.Zero || PdhCollectQueryData(_query) != 0)
             return null;
 
         var highestEngine = double.NaN;
@@ -53,15 +59,53 @@ internal sealed class GpuUsageMonitor : IDisposable
             }
         }
 
-        return double.IsNaN(highestEngine) ? null : Math.Clamp(highestEngine, 0, 100);
+        if (double.IsNaN(highestEngine))
+            return null;
+
+        var result = Math.Clamp(highestEngine, 0, 100);
+        // A CUDA engine can be registered a moment after a non-working process entry.
+        // Refresh that stale list after several consecutive zero samples, not on every tick.
+        if (result < 0.05 && ++_zeroReads >= 3)
+        {
+            RebindCounters();
+            return null;
+        }
+
+        _zeroReads = 0;
+        return result;
     }
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
-        if (_query != IntPtr.Zero)
-            PdhCloseQuery(_query);
+        CloseQuery();
+    }
+
+    private void RebindCounters()
+    {
+        CloseQuery();
+        _counters.Clear();
+        _readsSinceRefresh = 0;
+        _zeroReads = 0;
+        if (PdhOpenQuery(null, IntPtr.Zero, out _query) != 0)
+            return;
+
+        foreach (var path in ExpandPaths(_wildcardPath))
+        {
+            if (PdhAddEnglishCounter(_query, path, IntPtr.Zero, out var counter) == 0)
+                _counters.Add(counter);
+        }
+
+        if (_counters.Count > 0)
+            PdhCollectQueryData(_query); // Prime rate counters.
+    }
+
+    private void CloseQuery()
+    {
+        if (_query == IntPtr.Zero) return;
+        PdhCloseQuery(_query);
+        _query = IntPtr.Zero;
     }
 
     private static IEnumerable<string> ExpandPaths(string wildcardPath)
