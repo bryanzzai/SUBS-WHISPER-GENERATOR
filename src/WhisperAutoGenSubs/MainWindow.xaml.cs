@@ -111,10 +111,11 @@ public partial class MainWindow : Window
         }
 
         SaveSettings();
-        var workerThreads = OfflineSubtitleGenerator.WorkerThreadCount;
-        BeginOperation($"Generating 0/{missing.Length} with up to {workerThreads}/{Environment.ProcessorCount} CPU threads…");
+        BeginOperation($"Preparing GPU/CPU instrument panel for {missing.Length} video(s)…");
         ProgressBar.Maximum = missing.Length;
         ProgressBar.Value = 0;
+        ProgressBar.IsIndeterminate = false;
+        ResetDashboard();
         var failures = new List<string>();
 
         try
@@ -123,14 +124,13 @@ public partial class MainWindow : Window
             {
                 var item = missing[index];
                 _operationCts!.Token.ThrowIfCancellationRequested();
-                ProgressBar.IsIndeterminate = true;
                 item.Status = "Preparing…";
                 StatusTextBlock.Text = $"Generating {index + 1}/{missing.Length}: {item.FileName}";
+                CurrentFileTextBlock.Text = $"{index + 1}/{missing.Length} — {item.FileName}";
 
-                var phaseProgress = new Progress<string>(phase =>
+                var phaseProgress = new Progress<GenerationProgress>(update =>
                 {
-                    item.Status = phase;
-                    StatusTextBlock.Text = $"{phase} ({index + 1}/{missing.Length}): {item.FileName}";
+                    UpdateDashboard(update, item, index, missing.Length);
                 });
 
                 try
@@ -145,7 +145,6 @@ public partial class MainWindow : Window
                     failures.Add(item.FullPath);
                 }
 
-                ProgressBar.IsIndeterminate = false;
                 ProgressBar.Value = index + 1;
             }
 
@@ -163,6 +162,7 @@ public partial class MainWindow : Window
         finally
         {
             ProgressBar.IsIndeterminate = false;
+            FileProgressBar.IsIndeterminate = false;
             EndOperation();
         }
     }
@@ -197,6 +197,71 @@ public partial class MainWindow : Window
         CancelButton.IsEnabled = true;
         StatusTextBlock.Text = status;
     }
+
+    private void ResetDashboard()
+    {
+        CurrentFileTextBlock.Text = "No file is being processed.";
+        PhaseTextBlock.Text = "Waiting";
+        FileProgressBar.IsIndeterminate = false;
+        FileProgressBar.Value = 0;
+        FilePercentTextBlock.Text = "—";
+        EtaTextBlock.Text = "Waiting for measurement…";
+        SpeedTextBlock.Text = "—";
+        EngineTextBlock.Text = "Not started";
+        WorkerCpuTextBlock.Text = "Active process CPU: —";
+        SystemCpuTextBlock.Text = "Whole PC CPU: —";
+        WorkerGpuTextBlock.Text = "Active process GPU: waiting for Windows counter…";
+        TotalGpuTextBlock.Text = "Whole GPU (busiest engine): —";
+        WorkerCpuBar.Value = 0;
+        WorkerGpuBar.Value = 0;
+    }
+
+    private void UpdateDashboard(GenerationProgress update, VideoItem item, int index, int total)
+    {
+        var percent = update.Percent;
+        item.Status = percent is { } value ? $"{update.Phase} {value:0}%" : update.Phase;
+        StatusTextBlock.Text = $"{update.Phase} — {index + 1}/{total}: {item.FileName}";
+        PhaseTextBlock.Text = update.Phase;
+        CurrentFileTextBlock.Text = $"{index + 1}/{total} — {item.FileName}";
+
+        FileProgressBar.IsIndeterminate = percent is null;
+        if (percent is { } progressPercent)
+        {
+            FileProgressBar.Value = progressPercent;
+            FilePercentTextBlock.Text = $"{progressPercent:0}%";
+            ProgressBar.Value = index + progressPercent / 100d;
+        }
+        else
+        {
+            FilePercentTextBlock.Text = "Measuring…";
+            ProgressBar.Value = index;
+        }
+
+        EtaTextBlock.Text = update.EstimatedRemaining is { } eta
+            ? "About " + FormatDuration(eta) + " left"
+            : percent is >= 5 and < 100 ? "Calculating…" : "Waiting for measurement…";
+        SpeedTextBlock.Text = update.RealtimeFactor is { } speed ? $"{speed:0.0}× real time" : "—";
+        if (!string.IsNullOrWhiteSpace(update.Engine))
+            EngineTextBlock.Text = update.Engine;
+
+        if (update.Telemetry is { } telemetry)
+        {
+            WorkerCpuBar.Value = telemetry.ProcessCpuPercent;
+            WorkerGpuBar.Value = telemetry.ProcessGpuPercent ?? 0;
+            WorkerCpuTextBlock.Text = $"Active process CPU: {telemetry.ProcessCpuPercent:0}%";
+            SystemCpuTextBlock.Text = $"Whole PC CPU: {telemetry.SystemCpuPercent:0}%";
+            WorkerGpuTextBlock.Text = telemetry.ProcessGpuPercent is { } gpu
+                ? $"Active process GPU: {gpu:0}%"
+                : "Active process GPU: not available from Windows counter";
+            TotalGpuTextBlock.Text = telemetry.TotalGpuPercent is { } totalGpu
+                ? $"Whole GPU (busiest engine): {totalGpu:0}%"
+                : "Whole GPU (busiest engine): not available from Windows counter";
+        }
+    }
+
+    private static string FormatDuration(TimeSpan time) => time.TotalHours >= 1
+        ? $"{(int)time.TotalHours}:{time.Minutes:00}:{time.Seconds:00}"
+        : $"{time.Minutes}:{time.Seconds:00}";
 
     private void EndOperation()
     {

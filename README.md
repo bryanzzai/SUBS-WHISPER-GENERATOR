@@ -17,7 +17,19 @@ Silo S03E01.mkv  ->  Silo S03E01.srt
 
 The app extracts the first audio track into a temporary 16 kHz mono WAV, runs local `whisper.cpp` with English forced, then moves the resulting SRT beside the video. Video files are never modified.
 
-The local worker is capped at roughly 75% of the PC's logical CPU threads. During a long film the progress bar is animated while FFmpeg extracts audio and Whisper transcribes; the completed-file count advances after that film has finished. Cancelling does not leave a partial `.srt` next to the video.
+## Live progress and instrument panel
+
+The application no longer substitutes an animated bar for progress. While a file is running, its dashboard shows:
+
+- the exact file and phase;
+- real percentage from FFmpeg while audio is extracted, and from whisper.cpp while speech is transcribed;
+- estimated time remaining and processing speed in multiples of real time;
+- CPU use for the active worker process and the whole PC;
+- GPU use for the active worker process and the busiest GPU engine on the PC.
+
+The GPU readings come from Windows' GPU Engine performance counters. If a driver does not expose those counters, the application says so explicitly rather than showing a made-up number. `ffprobe.exe`, normally supplied beside `ffmpeg.exe`, gives the video duration needed for the precise extraction percentage. Without it, subtitle generation still works but the extraction phase is marked as duration unavailable.
+
+Cancelling does not leave a partial `.srt` next to the video.
 
 ## One-time local prerequisites
 
@@ -29,7 +41,7 @@ Put these files somewhere on the Windows PC. After that, the app operates withou
 
 For the fastest generation, start with `tiny.en`. It is the default recommendation in the app, but you choose the local model file explicitly. A larger English model gives better recognition at the cost of more time.
 
-If the PC has a supported GPU, choose a GPU-enabled `whisper-cli.exe` build; the app uses the executable you select and needs no different configuration.
+For the user's NVIDIA GeForce GTX 1650, select a CUDA-enabled `whisper-cli.exe` build. The ordinary `whisper-bin-x64.zip` is not automatically GPU-enabled: use a CUDA build that matches the installed NVIDIA driver/runtime and keep its DLL files beside `whisper-cli.exe`. The dashboard will confirm `CUDA GPU active` only after the running executable reports a CUDA backend; otherwise it clearly reports `CPU-only executable`.
 
 ## Build
 

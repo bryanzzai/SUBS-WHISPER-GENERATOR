@@ -1,11 +1,19 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 
 namespace WhisperAutoGenSubs.Services;
 
+public sealed record ProcessOutputLine(bool IsError, string Text);
+
 public static class ProcessRunner
 {
-    public static async Task RunAsync(string executablePath, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    public static async Task RunAsync(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        IProgress<ProcessOutputLine>? output,
+        IProgress<ProcessTelemetry>? telemetry,
+        CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -23,31 +31,92 @@ public static class ProcessRunner
         if (!process.Start())
             throw new InvalidOperationException($"Could not start {Path.GetFileName(executablePath)}.");
 
-        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        TrySetLowPriority(process);
+        var recentOutput = new ConcurrentQueue<string>();
+        var stdoutTask = PumpAsync(process.StandardOutput, false, output, recentOutput);
+        var stderrTask = PumpAsync(process.StandardError, true, output, recentOutput);
+        using var monitorCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var monitorTask = MonitorAsync(process, telemetry, monitorCancellation.Token);
 
-        using var registration = cancellationToken.Register(() =>
+        using var registration = cancellationToken.Register(() => KillIfRunning(process));
+        try
         {
-            try
-            {
-                if (!process.HasExited)
-                    process.Kill(entireProcessTree: true);
-            }
-            catch (InvalidOperationException)
-            {
-                // The process completed between the checks.
-            }
-        });
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        finally
+        {
+            monitorCancellation.Cancel();
+        }
 
-        await process.WaitForExitAsync(cancellationToken);
-        var output = await outputTask;
-        var error = await errorTask;
+        await Task.WhenAll(stdoutTask, stderrTask);
+        try { await monitorTask; } catch (OperationCanceledException) { }
 
         if (process.ExitCode != 0)
         {
-            var detail = string.IsNullOrWhiteSpace(error) ? output : error;
+            var detail = string.Join(Environment.NewLine, recentOutput);
             throw new InvalidOperationException(
                 $"{Path.GetFileName(executablePath)} failed with exit code {process.ExitCode}. {detail.Trim()}");
         }
+    }
+
+    private static async Task PumpAsync(StreamReader reader, bool isError, IProgress<ProcessOutputLine>? output, ConcurrentQueue<string> recentOutput)
+    {
+        string? line;
+        while ((line = await reader.ReadLineAsync()) is not null)
+        {
+            if (recentOutput.Count >= 40)
+                recentOutput.TryDequeue(out _);
+            recentOutput.Enqueue(line);
+            output?.Report(new ProcessOutputLine(isError, line));
+        }
+    }
+
+    private static async Task MonitorAsync(Process process, IProgress<ProcessTelemetry>? telemetry, CancellationToken cancellationToken)
+    {
+        if (telemetry is null)
+            return;
+
+        using var ownGpu = GpuUsageMonitor.ForProcess(process.Id);
+        using var totalGpu = GpuUsageMonitor.ForAllEngines();
+        var systemCpu = new SystemCpuMonitor();
+        var stopwatch = Stopwatch.StartNew();
+        var previousWall = stopwatch.Elapsed;
+        var previousCpu = process.TotalProcessorTime;
+
+        while (!cancellationToken.IsCancellationRequested && !process.HasExited)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            if (process.HasExited)
+                break;
+
+            process.Refresh();
+            var now = stopwatch.Elapsed;
+            var cpuNow = process.TotalProcessorTime;
+            var wallSeconds = Math.Max(0.001, (now - previousWall).TotalSeconds);
+            var processCpu = Math.Clamp(
+                (cpuNow - previousCpu).TotalSeconds / wallSeconds / Environment.ProcessorCount * 100d,
+                0, 100);
+
+            previousWall = now;
+            previousCpu = cpuNow;
+            telemetry.Report(new ProcessTelemetry(processCpu, systemCpu.ReadPercent(), ownGpu.ReadPercent(), totalGpu.ReadPercent()));
+        }
+    }
+
+    private static void TrySetLowPriority(Process process)
+    {
+        try { process.PriorityClass = ProcessPriorityClass.BelowNormal; }
+        catch (InvalidOperationException) { }
+        catch (System.ComponentModel.Win32Exception) { }
+    }
+
+    private static void KillIfRunning(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException) { }
     }
 }
