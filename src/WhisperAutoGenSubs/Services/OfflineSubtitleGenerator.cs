@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace WhisperAutoGenSubs.Services;
 
 public sealed class OfflineSubtitleGenerator
@@ -73,4 +75,3 @@ public sealed class OfflineSubtitleGenerator
             throw new FileNotFoundException($"Choose a valid {name} executable first.", path);
     }
 }
-

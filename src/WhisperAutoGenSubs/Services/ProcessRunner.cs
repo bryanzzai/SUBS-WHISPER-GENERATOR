@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 
 namespace WhisperAutoGenSubs.Services;
 
@@ -50,4 +51,3 @@ public static class ProcessRunner
         }
     }
 }
-

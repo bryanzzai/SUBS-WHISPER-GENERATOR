@@ -1,3 +1,4 @@
+using System.IO;
 using WhisperAutoGenSubs.Models;
 
 namespace WhisperAutoGenSubs.Services;
