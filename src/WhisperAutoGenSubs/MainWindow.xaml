@@ -16,7 +16,7 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="Whisper Auto Gen Subs" FontSize="28" FontWeight="SemiBold" />
             <TextBlock Margin="0,4,0,0" Foreground="DimGray"
-                       Text="Local, offline English subtitle generation. No OpenSubtitles and no web services." />
+                       Text="Local, offline English subtitle generation. No OpenSubtitles or web services. CPU use is capped at about 75%." />
         </StackPanel>
 
         <Grid Grid.Row="1" Margin="0,0,0,12">
@@ -87,4 +87,3 @@
         </Grid>
     </Grid>
 </Window>
-

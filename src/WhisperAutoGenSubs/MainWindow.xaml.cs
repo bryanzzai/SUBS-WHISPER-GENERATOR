@@ -111,7 +111,8 @@ public partial class MainWindow : Window
         }
 
         SaveSettings();
-        BeginOperation($"Generating 0/{missing.Length}…");
+        var workerThreads = OfflineSubtitleGenerator.WorkerThreadCount;
+        BeginOperation($"Generating 0/{missing.Length} with up to {workerThreads}/{Environment.ProcessorCount} CPU threads…");
         ProgressBar.Maximum = missing.Length;
         ProgressBar.Value = 0;
         var failures = new List<string>();
@@ -122,12 +123,20 @@ public partial class MainWindow : Window
             {
                 var item = missing[index];
                 _operationCts!.Token.ThrowIfCancellationRequested();
-                item.Status = "Generating English SRT…";
+                ProgressBar.IsIndeterminate = true;
+                item.Status = "Preparing…";
                 StatusTextBlock.Text = $"Generating {index + 1}/{missing.Length}: {item.FileName}";
+
+                var phaseProgress = new Progress<string>(phase =>
+                {
+                    item.Status = phase;
+                    StatusTextBlock.Text = $"{phase} ({index + 1}/{missing.Length}): {item.FileName}";
+                });
 
                 try
                 {
-                    item.SubtitlePath = await _generator.GenerateAsync(item.FullPath, ffmpeg, whisper, model, _operationCts.Token);
+                    item.SubtitlePath = await _generator.GenerateAsync(
+                        item.FullPath, ffmpeg, whisper, model, phaseProgress, _operationCts.Token);
                     item.Status = "Generated.";
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -136,6 +145,7 @@ public partial class MainWindow : Window
                     failures.Add(item.FullPath);
                 }
 
+                ProgressBar.IsIndeterminate = false;
                 ProgressBar.Value = index + 1;
             }
 
@@ -152,6 +162,7 @@ public partial class MainWindow : Window
         }
         finally
         {
+            ProgressBar.IsIndeterminate = false;
             EndOperation();
         }
     }

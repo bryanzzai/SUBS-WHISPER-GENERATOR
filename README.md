@@ -17,6 +17,8 @@ Silo S03E01.mkv  ->  Silo S03E01.srt
 
 The app extracts the first audio track into a temporary 16 kHz mono WAV, runs local `whisper.cpp` with English forced, then moves the resulting SRT beside the video. Video files are never modified.
 
+The local worker is capped at roughly 75% of the PC's logical CPU threads. During a long film the progress bar is animated while FFmpeg extracts audio and Whisper transcribes; the completed-file count advances after that film has finished. Cancelling does not leave a partial `.srt` next to the video.
+
 ## One-time local prerequisites
 
 Put these files somewhere on the Windows PC. After that, the app operates without an internet connection.

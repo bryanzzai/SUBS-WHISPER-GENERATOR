@@ -4,11 +4,14 @@ namespace WhisperAutoGenSubs.Services;
 
 public sealed class OfflineSubtitleGenerator
 {
+    public static int WorkerThreadCount => Math.Max(1, (int)Math.Floor(Environment.ProcessorCount * 0.75));
+
     public async Task<string> GenerateAsync(
         string videoPath,
         string ffmpegPath,
         string whisperCliPath,
         string modelPath,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         ValidateExecutable(ffmpegPath, "FFmpeg");
@@ -23,12 +26,15 @@ public sealed class OfflineSubtitleGenerator
         var outputBase = Path.Combine(workspace, "subtitle");
         var generatedSrt = outputBase + ".srt";
         var destinationSrt = Path.ChangeExtension(videoPath, ".srt");
+        var threadCount = WorkerThreadCount.ToString();
 
         try
         {
+            progress?.Report("Extracting audio…");
             await ProcessRunner.RunAsync(ffmpegPath,
             [
                 "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
+                "-threads", threadCount,
                 "-i", videoPath,
                 "-map", "0:a:0?",
                 "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le",
@@ -38,12 +44,13 @@ public sealed class OfflineSubtitleGenerator
             if (!File.Exists(audioPath))
                 throw new InvalidOperationException("FFmpeg did not create an audio track for this video.");
 
+            progress?.Report("Transcribing English audio locally…");
             await ProcessRunner.RunAsync(whisperCliPath,
             [
                 "--model", modelPath,
                 "--file", audioPath,
                 "--language", "en",
-                "--threads", Math.Max(1, Environment.ProcessorCount).ToString(),
+                "--threads", threadCount,
                 "--output-srt",
                 "--output-file", outputBase,
                 "--no-prints"
@@ -52,6 +59,7 @@ public sealed class OfflineSubtitleGenerator
             if (!File.Exists(generatedSrt))
                 throw new InvalidOperationException("whisper.cpp completed without producing an SRT file.");
 
+            progress?.Report("Saving SRT…");
             File.Move(generatedSrt, destinationSrt, overwrite: false);
             return destinationSrt;
         }
