@@ -95,7 +95,9 @@ public sealed class OfflineSubtitleGenerator
         var percent = 0d;
         void Report()
         {
-            var speed = duration is null || percent <= 0 ? null : duration.Value.TotalSeconds * percent / 100d / Math.Max(0.01, started.Elapsed.TotalSeconds);
+            double? speed = duration is null || percent <= 0
+                ? null
+                : duration.Value.TotalSeconds * percent / 100d / Math.Max(0.01, started.Elapsed.TotalSeconds);
             progress?.Report(new GenerationProgress("Transcribing English audio…", percent <= 0 ? null : percent,
                 EstimateRemaining(started.Elapsed, percent), speed, engine, latestTelemetry));
         }
