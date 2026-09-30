@@ -13,11 +13,15 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Whisper Auto Gen Subs" FontSize="28" FontWeight="SemiBold" />
-            <TextBlock Margin="0,4,0,0" Foreground="DimGray"
-                       Text="Local, offline English subtitle generation. No OpenSubtitles or web services. GPU is used when the selected whisper-cli supports CUDA." />
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="Whisper Auto Gen Subs" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Margin="0,4,0,0" Foreground="DimGray"
+                           Text="Local, offline English subtitle generation. No OpenSubtitles or web services. GPU is used when the selected whisper-cli supports CUDA." />
+            </StackPanel>
+            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Top" Foreground="Gray" FontSize="11"
+                       Text="{Binding ReleaseLabel}" ToolTip="Installed app release" />
+        </Grid>
 
         <Grid Grid.Row="1" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>

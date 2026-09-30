@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using Microsoft.Win32;
 using WhisperAutoGenSubs.Configuration;
@@ -15,6 +16,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _operationCts;
 
     public ObservableCollection<VideoItem> Videos { get; } = [];
+    public string ReleaseLabel => $"Release {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown"}";
 
     public MainWindow()
     {
