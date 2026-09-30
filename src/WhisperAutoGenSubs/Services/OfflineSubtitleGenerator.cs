@@ -92,6 +92,8 @@ public sealed class OfflineSubtitleGenerator
         var started = Stopwatch.StartNew();
         ProcessTelemetry? latestTelemetry = null;
         var engine = "Starting Whisper — backend being detected…";
+        var cudaBackendDetected = false;
+        var gpuInferenceConfirmed = false;
         var percent = 0d;
         void Report()
         {
@@ -105,14 +107,34 @@ public sealed class OfflineSubtitleGenerator
         var telemetry = new Progress<ProcessTelemetry>(sample => { latestTelemetry = sample; Report(); });
         var output = new Progress<ProcessOutputLine>(line =>
         {
-            var detected = DetectWhisperEngine(line.Text);
-            if (detected is not null)
-                engine = detected;
+            var text = line.Text.ToLowerInvariant();
+            var engineChanged = false;
+            if (text.Contains("cuda"))
+            {
+                cudaBackendDetected = true;
+                if (!gpuInferenceConfirmed)
+                {
+                    engine = "CUDA backend detected — awaiting inference confirmation…";
+                    engineChanged = true;
+                }
+            }
+            if (text.Contains("use gpu = 1"))
+            {
+                gpuInferenceConfirmed = true;
+                engine = cudaBackendDetected ? "CUDA GPU inference confirmed" : "GPU inference confirmed";
+                engineChanged = true;
+            }
+            if (text.Contains("use gpu = 0"))
+            {
+                gpuInferenceConfirmed = false;
+                engine = cudaBackendDetected ? "CUDA backend detected — CPU inference selected" : "CPU-only executable";
+                engineChanged = true;
+            }
 
             var match = WhisperProgress.Match(line.Text);
             if (match.Success && double.TryParse(match.Groups["percent"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
                 percent = Math.Clamp(value, 0, 100);
-            if (detected is not null || match.Success)
+            if (engineChanged || match.Success)
                 Report();
         });
 
@@ -155,16 +177,6 @@ public sealed class OfflineSubtitleGenerator
         const string prefix = "out_time=";
         return line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
                TimeSpan.TryParse(line[prefix.Length..], CultureInfo.InvariantCulture, out time);
-    }
-
-    private static string? DetectWhisperEngine(string line)
-    {
-        var text = line.ToLowerInvariant();
-        if (text.Contains("cuda")) return "CUDA GPU active";
-        if (text.Contains("vulkan")) return "Vulkan GPU active";
-        if (text.Contains("use gpu = 1")) return "GPU active";
-        if (text.Contains("use gpu = 0")) return "CPU-only executable";
-        return null;
     }
 
     private static TimeSpan? EstimateRemaining(TimeSpan elapsed, double percent)
