@@ -135,7 +135,14 @@
                   AutoGenerateColumns="False" CanUserAddRows="False"
                   HeadersVisibility="Column" GridLinesVisibility="Horizontal" SelectionMode="Extended">
             <DataGrid.Columns>
-                <DataGridCheckBoxColumn Header="Select" Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="Auto" />
+                <DataGridTemplateColumn Header="Select" Width="Auto" IsReadOnly="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Video" Binding="{Binding FileName}" Width="3*" IsReadOnly="True" />
                 <DataGridTextColumn Header="Folder" Binding="{Binding Folder}" Width="3*" IsReadOnly="True" />
                 <DataGridTextColumn Header="Subtitle" Binding="{Binding SubtitleDisplay}" Width="2*" IsReadOnly="True" />
