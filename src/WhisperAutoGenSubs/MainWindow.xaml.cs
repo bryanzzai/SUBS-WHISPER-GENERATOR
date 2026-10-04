@@ -73,8 +73,7 @@ public partial class MainWindow : Window
             foreach (var item in items)
                 Videos.Add(item);
 
-            var missing = Videos.Count(x => !x.HasSubtitle);
-            StatusTextBlock.Text = $"Scan complete. {Videos.Count} videos; {missing} need English subtitles.";
+            StatusTextBlock.Text = $"Scan complete. {Videos.Count} videos. Select the files to generate subtitles for.";
             CountTextBlock.Text = $"{Videos.Count} videos";
             ProgressBar.Maximum = Math.Max(1, Videos.Count);
             ProgressBar.Value = Videos.Count;
@@ -96,10 +95,10 @@ public partial class MainWindow : Window
 
     private async void GenerateButton_Click(object sender, RoutedEventArgs e)
     {
-        var missing = Videos.Where(x => !x.HasSubtitle).ToArray();
-        if (missing.Length == 0)
+        var selected = Videos.Where(x => x.IsSelected).ToArray();
+        if (selected.Length == 0)
         {
-            ShowInfo("Scan a library first, or all scanned videos already have a matching .srt file.");
+            ShowInfo("Scan a library, then select one or more videos in the first column.");
             return;
         }
 
@@ -113,8 +112,8 @@ public partial class MainWindow : Window
         }
 
         SaveSettings();
-        BeginOperation($"Preparing GPU/CPU instrument panel for {missing.Length} video(s)…");
-        ProgressBar.Maximum = missing.Length;
+        BeginOperation($"Preparing GPU/CPU instrument panel for {selected.Length} video(s)…");
+        ProgressBar.Maximum = selected.Length;
         ProgressBar.Value = 0;
         ProgressBar.IsIndeterminate = false;
         ResetDashboard();
@@ -122,17 +121,17 @@ public partial class MainWindow : Window
 
         try
         {
-            for (var index = 0; index < missing.Length; index++)
+            for (var index = 0; index < selected.Length; index++)
             {
-                var item = missing[index];
+                var item = selected[index];
                 _operationCts!.Token.ThrowIfCancellationRequested();
                 item.Status = "Preparing…";
-                StatusTextBlock.Text = $"Generating {index + 1}/{missing.Length}: {item.FileName}";
-                CurrentFileTextBlock.Text = $"{index + 1}/{missing.Length} — {item.FileName}";
+                StatusTextBlock.Text = $"Generating {index + 1}/{selected.Length}: {item.FileName}";
+                CurrentFileTextBlock.Text = $"{index + 1}/{selected.Length} — {item.FileName}";
 
                 var phaseProgress = new Progress<GenerationProgress>(update =>
                 {
-                    UpdateDashboard(update, item, index, missing.Length);
+                    UpdateDashboard(update, item, index, selected.Length);
                 });
 
                 try
@@ -151,7 +150,7 @@ public partial class MainWindow : Window
             }
 
             WriteFailureReport(LibraryPathTextBox.Text.Trim(), failures);
-            StatusTextBlock.Text = $"Finished. {missing.Length - failures.Count} generated; {failures.Count} failed.";
+            StatusTextBlock.Text = $"Finished. {selected.Length - failures.Count} generated; {failures.Count} failed.";
         }
         catch (OperationCanceledException)
         {
@@ -196,6 +195,7 @@ public partial class MainWindow : Window
         _operationCts = new CancellationTokenSource();
         ScanButton.IsEnabled = false;
         GenerateButton.IsEnabled = false;
+        VideoGrid.IsEnabled = false;
         CancelButton.IsEnabled = true;
         StatusTextBlock.Text = status;
     }
@@ -289,6 +289,7 @@ public partial class MainWindow : Window
     {
         ScanButton.IsEnabled = true;
         GenerateButton.IsEnabled = true;
+        VideoGrid.IsEnabled = true;
         CancelButton.IsEnabled = false;
         _operationCts?.Dispose();
         _operationCts = null;

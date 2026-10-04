@@ -6,12 +6,24 @@ namespace WhisperAutoGenSubs.Models;
 
 public sealed class VideoItem : INotifyPropertyChanged
 {
+    private bool _isSelected;
     private string _status = "Ready";
     private string? _subtitlePath;
 
     public required string FullPath { get; init; }
     public required string FileName { get; init; }
     public required string Folder { get; init; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value) return;
+            _isSelected = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string? SubtitlePath
     {
@@ -46,4 +58,3 @@ public sealed class VideoItem : INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
-

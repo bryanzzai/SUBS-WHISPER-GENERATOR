@@ -1,6 +1,6 @@
 # Whisper Auto Gen Subs
 
-Windows desktop app that recursively scans a local video library and generates an English `.srt` sidecar next to every video that does not already have one.
+Windows desktop app that recursively scans a local video library and generates an English `.srt` sidecar next to the videos selected in the result list.
 
 It is deliberately offline at runtime. It does not call OpenSubtitles, any subtitle site, OpenAI, or any other web service.
 
@@ -13,7 +13,7 @@ Silo S03E01.mkv  ->  Silo S03E01.srt
 1. Choose the root of a video library.
 2. Choose local copies of `ffmpeg.exe`, `whisper-cli.exe`, and an English whisper.cpp model.
 3. Scan.
-4. Click **Generate missing subtitles**.
+4. Select the videos to process in the first column, then click **Generate selected subtitles**. An existing `.srt` beside a selected video is replaced.
 
 The app extracts the first audio track into a temporary 16 kHz mono WAV, runs local `whisper.cpp` with English forced, then moves the resulting SRT beside the video. Video files are never modified.
 

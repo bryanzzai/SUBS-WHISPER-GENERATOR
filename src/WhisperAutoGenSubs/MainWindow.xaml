@@ -132,13 +132,14 @@
         </StackPanel>
 
         <DataGrid x:Name="VideoGrid" Grid.Row="3" ItemsSource="{Binding Videos}"
-                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                  AutoGenerateColumns="False" CanUserAddRows="False"
                   HeadersVisibility="Column" GridLinesVisibility="Horizontal" SelectionMode="Extended">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Video" Binding="{Binding FileName}" Width="3*" />
-                <DataGridTextColumn Header="Folder" Binding="{Binding Folder}" Width="3*" />
-                <DataGridTextColumn Header="Subtitle" Binding="{Binding SubtitleDisplay}" Width="2*" />
-                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="2*" />
+                <DataGridCheckBoxColumn Header="Select" Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="Auto" />
+                <DataGridTextColumn Header="Video" Binding="{Binding FileName}" Width="3*" IsReadOnly="True" />
+                <DataGridTextColumn Header="Folder" Binding="{Binding Folder}" Width="3*" IsReadOnly="True" />
+                <DataGridTextColumn Header="Subtitle" Binding="{Binding SubtitleDisplay}" Width="2*" IsReadOnly="True" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="2*" IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>
 
@@ -154,7 +155,7 @@
                 <ProgressBar x:Name="ProgressBar" Margin="0,6,12,0" Height="6" Minimum="0" Maximum="1" Value="0" />
             </StackPanel>
             <TextBlock x:Name="CountTextBlock" Grid.Column="1" Margin="16,0" VerticalAlignment="Center" Foreground="DimGray" Text="0 videos" />
-            <Button x:Name="GenerateButton" Grid.Column="2" Padding="16,6" Margin="0,0,8,0" Content="Generate missing subtitles" Click="GenerateButton_Click" />
+            <Button x:Name="GenerateButton" Grid.Column="2" Padding="16,6" Margin="0,0,8,0" Content="Generate selected subtitles" Click="GenerateButton_Click" />
             <Button x:Name="CancelButton" Grid.Column="3" Padding="16,6" Content="Cancel" IsEnabled="False" Click="CancelButton_Click" />
         </Grid>
     </Grid>

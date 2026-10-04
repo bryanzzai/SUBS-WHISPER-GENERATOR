@@ -37,7 +37,7 @@ public sealed class OfflineSubtitleGenerator
                 throw new InvalidOperationException("whisper.cpp completed without producing an SRT file.");
 
             progress?.Report(new GenerationProgress("Saving final SRT…", 100));
-            File.Move(generatedSrt, destinationSrt, overwrite: false);
+            File.Move(generatedSrt, destinationSrt, overwrite: true);
             return destinationSrt;
         }
         finally
