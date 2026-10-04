@@ -48,14 +48,14 @@ For the user's NVIDIA GeForce GTX 1650, select a CUDA-enabled `whisper-cli.exe` 
 Requirements: Windows 10/11 and the .NET 10 SDK.
 
 ```powershell
-dotnet build src/WhisperAutoGenSubs/WhisperAutoGenSubs.csproj
-dotnet run --project src/WhisperAutoGenSubs/WhisperAutoGenSubs.csproj
+dotnet build src/WhisperSelectGenSubs/WhisperSelectGenSubs.csproj
+dotnet run --project src/WhisperSelectGenSubs/WhisperSelectGenSubs.csproj
 ```
 
 To produce a self-contained Windows executable:
 
 ```powershell
-dotnet publish src/WhisperAutoGenSubs/WhisperAutoGenSubs.csproj -c Release -r win-x64 --self-contained true
+dotnet publish src/WhisperSelectGenSubs/WhisperSelectGenSubs.csproj -c Release -r win-x64 --self-contained true
 ```
 
 The published application still uses the local FFmpeg, whisper.cpp, and model paths selected in its UI. This keeps the application itself network-free and makes the model choice explicit.

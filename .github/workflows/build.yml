@@ -15,7 +15,7 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          dotnet build src/WhisperAutoGenSubs/WhisperAutoGenSubs.csproj --configuration Release 2>&1 | Tee-Object -FilePath build.log
+          dotnet build src/WhisperSelectGenSubs/WhisperSelectGenSubs.csproj --configuration Release 2>&1 | Tee-Object -FilePath build.log
           exit $LASTEXITCODE
       - name: Upload failed build log
         if: failure()
