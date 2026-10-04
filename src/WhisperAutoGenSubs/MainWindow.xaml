@@ -1,7 +1,7 @@
-<Window x:Class="WhisperAutoGenSubs.MainWindow"
+<Window x:Class="WhisperSelectGenSubs.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Whisper Auto Gen Subs"
+        Title="Whisper Select Gen Subs"
         Height="960" Width="1180" MinHeight="720" MinWidth="920"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="20">
@@ -15,7 +15,7 @@
 
         <Grid Grid.Row="0" Margin="0,0,0,16">
             <StackPanel>
-                <TextBlock Text="Whisper Auto Gen Subs" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="Whisper Select Gen Subs" FontSize="28" FontWeight="SemiBold" />
                 <TextBlock Margin="0,4,0,0" Foreground="DimGray"
                            Text="Local, offline English subtitle generation. No OpenSubtitles or web services. GPU is used when the selected whisper-cli supports CUDA." />
             </StackPanel>

@@ -3,11 +3,11 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using Microsoft.Win32;
-using WhisperAutoGenSubs.Configuration;
-using WhisperAutoGenSubs.Models;
-using WhisperAutoGenSubs.Services;
+using WhisperSelectGenSubs.Configuration;
+using WhisperSelectGenSubs.Models;
+using WhisperSelectGenSubs.Services;
 
-namespace WhisperAutoGenSubs;
+namespace WhisperSelectGenSubs;
 
 public partial class MainWindow : Window
 {
@@ -176,14 +176,14 @@ public partial class MainWindow : Window
 
     private static void WriteFailureReport(string libraryRoot, IReadOnlyCollection<string> failures)
     {
-        var report = Path.Combine(libraryRoot, "Failed-Subtitle-Generation.txt");
+        var report = Path.Combine(libraryRoot, "Failed-WhisperSelectGenSubs-Generation.txt");
         if (failures.Count == 0)
         {
             if (File.Exists(report)) File.Delete(report);
             return;
         }
 
-        var lines = new[] { "Whisper Auto Gen Subs - failures", $"Generated: {DateTimeOffset.Now:O}", "" }.Concat(failures);
+        var lines = new[] { "Whisper Select Gen Subs - failures", $"Generated: {DateTimeOffset.Now:O}", "" }.Concat(failures);
         File.WriteAllLines(report, lines);
     }
 
@@ -295,7 +295,7 @@ public partial class MainWindow : Window
         _operationCts = null;
     }
 
-    private void ShowInfo(string message) => MessageBox.Show(this, message, "Whisper Auto Gen Subs", MessageBoxButton.OK, MessageBoxImage.Information);
+    private void ShowInfo(string message) => MessageBox.Show(this, message, "Whisper Select Gen Subs", MessageBoxButton.OK, MessageBoxImage.Information);
     private void ShowError(string title, Exception ex)
     {
         StatusTextBlock.Text = title + ".";

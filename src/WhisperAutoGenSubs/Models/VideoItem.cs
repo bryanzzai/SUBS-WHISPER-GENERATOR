@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace WhisperAutoGenSubs.Models;
+namespace WhisperSelectGenSubs.Models;
 
 public sealed class VideoItem : INotifyPropertyChanged
 {

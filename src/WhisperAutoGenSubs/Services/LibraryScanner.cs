@@ -1,7 +1,7 @@
 using System.IO;
-using WhisperAutoGenSubs.Models;
+using WhisperSelectGenSubs.Models;
 
-namespace WhisperAutoGenSubs.Services;
+namespace WhisperSelectGenSubs.Services;
 
 public sealed class LibraryScanner
 {

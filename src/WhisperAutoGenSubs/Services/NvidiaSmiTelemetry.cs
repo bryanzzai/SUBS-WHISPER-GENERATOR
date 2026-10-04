@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace WhisperAutoGenSubs.Services;
+namespace WhisperSelectGenSubs.Services;
 
 /// <summary>
 /// Reads NVIDIA's NVML driver library directly. NVIDIA documents NVML as the

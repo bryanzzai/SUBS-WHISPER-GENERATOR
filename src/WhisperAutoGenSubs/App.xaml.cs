@@ -1,8 +1,7 @@
 using System.Windows;
 
-namespace WhisperAutoGenSubs;
+namespace WhisperSelectGenSubs;
 
 public partial class App : Application
 {
 }
-

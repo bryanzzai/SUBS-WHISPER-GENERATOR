@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace WhisperAutoGenSubs.Services;
+namespace WhisperSelectGenSubs.Services;
 
 /// <summary>
 /// Reads the same Windows performance-counter family that Task Manager uses for GPU engines.

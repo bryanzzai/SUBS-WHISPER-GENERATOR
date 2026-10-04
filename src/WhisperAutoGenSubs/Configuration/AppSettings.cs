@@ -1,4 +1,4 @@
-namespace WhisperAutoGenSubs.Configuration;
+namespace WhisperSelectGenSubs.Configuration;
 
 public sealed record AppSettings(
     string LibraryRoot,
@@ -8,4 +8,3 @@ public sealed record AppSettings(
 {
     public static AppSettings Empty { get; } = new(string.Empty, string.Empty, string.Empty, string.Empty);
 }
-

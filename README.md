@@ -1,4 +1,4 @@
-# Whisper Auto Gen Subs
+# Whisper Select Gen Subs
 
 Windows desktop app that recursively scans a local video library and generates an English `.srt` sidecar next to the videos selected in the result list.
 

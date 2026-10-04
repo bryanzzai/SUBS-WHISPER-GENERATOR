@@ -1,4 +1,4 @@
-namespace WhisperAutoGenSubs.Services;
+namespace WhisperSelectGenSubs.Services;
 
 public sealed record GenerationProgress(
     string Phase,

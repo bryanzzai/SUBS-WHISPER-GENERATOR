@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace WhisperAutoGenSubs.Services;
+namespace WhisperSelectGenSubs.Services;
 
 public sealed class OfflineSubtitleGenerator
 {
@@ -19,7 +19,7 @@ public sealed class OfflineSubtitleGenerator
         if (!File.Exists(modelPath))
             throw new FileNotFoundException("The selected whisper.cpp model does not exist.", modelPath);
 
-        var workspace = Path.Combine(Path.GetTempPath(), "WhisperAutoGenSubs", Guid.NewGuid().ToString("N"));
+        var workspace = Path.Combine(Path.GetTempPath(), "WhisperSelectGenSubs", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(workspace);
         var audioPath = Path.Combine(workspace, "audio.wav");
         var outputBase = Path.Combine(workspace, "subtitle");

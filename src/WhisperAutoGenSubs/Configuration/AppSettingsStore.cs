@@ -1,13 +1,13 @@
 using System.IO;
 using System.Text.Json;
 
-namespace WhisperAutoGenSubs.Configuration;
+namespace WhisperSelectGenSubs.Configuration;
 
 public static class AppSettingsStore
 {
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "WhisperAutoGenSubs",
+        "WhisperSelectGenSubs",
         "settings.json");
 
     public static AppSettings Load()
